@@ -1,15 +1,23 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"syscall"
-	"fmt"
+
 	"github.com/docker/docker/pkg/reexec"
 )
 
-func main(){
-	cmd := reexec.Command("nsInitialization")
+func main() {
+	var rootfs string
+	flag.StringVar(&rootfs, "rootfs", "/tmp/ns-process/rootfs", "Path to root file system to use")
+	flag.Parse()
+
+	exitIfRootfsNotFound(rootfs)
+
+	cmd := reexec.Command("nsInitialization", rootfs)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -43,26 +51,35 @@ func main(){
 	}
 }
 
-func init (){
+func init() {
 	reexec.Register("nsInitialization", nsInitialization)
-	if reexec.Init(){
+	if reexec.Init() {
 		os.Exit(0)
 	}
 }
 
-func nsInitialization(){
-	fmt.Printf("\n>> namespace setup code goes here << \n\n")
+func nsInitialization() {
+	//fmt.Printf("\n>> namespace setup code goes here << \n\n")
 	/*switch os.Args[1] {
 	case "run":
 		run()
 	default:
 		panic("command not supported")
 	}*/
+	newrootPath := os.Args[1]
+	if err := mountProc(newrootPath); err != nil {
+		fmt.Printf("Error mounting /proc - %s \n", err)
+		os.Exit(1)
+	}
+	if err := pivotRoot(newrootPath); err != nil {
+		fmt.Printf("Error using the pivot root- %s \n", err)
+		os.Exit(1)
+	}
 	run()
 }
 
-func run(){
-	//cmd := exec.Command(os.Args[2], os.Args[3:]...)
+func run() {
+
 	cmd := exec.Command("/bin/sh")
 	cmd.Stdout = os.Stdout
 	cmd.Stdin = os.Stdin
@@ -76,8 +93,8 @@ func run(){
 	}
 }
 
-func must (err error){
-	if err != nil{
+func must(err error) {
+	if err != nil {
 		panic(err)
 	}
 }
