@@ -75,6 +75,10 @@ func nsInitialization() {
 		fmt.Printf("Error using the pivot root- %s \n", err)
 		os.Exit(1)
 	}
+	if err := syscall.Sethostname([]byte("rcontainer")); err != nil {
+		fmt.Println("Error in setting the host name")
+		os.Exit(1)
+	}
 	run()
 }
 
@@ -85,7 +89,7 @@ func run() {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 
-	cmd.Env = []string{"PS1=-[ns-process]- # "}
+	cmd.Env = []string{"PS1=-[rcontainer]- # "}
 
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("Error running the /bin/sh command - %s\n", err)
